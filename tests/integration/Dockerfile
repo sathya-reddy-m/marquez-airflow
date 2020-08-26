@@ -1,12 +1,17 @@
-FROM puckel/docker-airflow:1.10.6
+FROM bitnami/airflow-scheduler:1.10.11 AS scheduler
 USER root
+RUN apt-get update && \
+    apt-get install -y git
+USER 1001
 
-RUN pip install pytest
-COPY . /marquez-airflow/
+FROM bitnami/airflow-worker:1.10.11 AS worker
+USER root
+RUN apt-get update && \
+    apt-get install -y git
+USER 1001
 
-RUN cd /marquez-airflow && \
-    python setup.py sdist && \
-    pip install .
-
-COPY ./tests/integration/integration_test.py .
-CMD python -m pytest --log-cli-level=INFO ./integration_test.py
+FROM bitnami/airflow:1.10.11 AS airflow
+USER root
+RUN apt-get update && \
+    apt-get install -y git
+USER 1001

@@ -9,3 +9,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
+class AirflowOperatorMeta:
+    def __init__(self, name, inputs, outputs,
+                 location=None, context=None):
+        self.name = name
+        self.inputs = inputs
+        self.outputs = outputs
+        self.location = location
+        self.context = context

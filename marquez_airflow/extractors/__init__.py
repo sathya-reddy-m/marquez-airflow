@@ -14,95 +14,51 @@ import inspect
 import pkgutil
 import sys
 
-from airflow.models import BaseOperator
+from marquez_airflow.models import AirflowOperatorMeta
 
 
-def get_extractors():
+def load_extractors():
+    """
+    This method.
+    """
+
     extractors = {}
-    for mi in pkgutil.walk_packages(path=__path__,
-                                    onerror=lambda x: None,
-                                    prefix=__name__+'.'):
+
+    modules = pkgutil.walk_packages(path=__path__, onerror=lambda x: None, prefix=__name__+'.')
+    for module in modules:
         try:
-            pkgutil.get_loader(mi.name).load_module()
-            for name, cls in inspect.getmembers(sys.modules[mi.name],
-                                                inspect.isclass):
+            pkgutil.get_loader(module.name).load_module()
+            for name, cls in inspect.getmembers(sys.modules[module.name], inspect.isclass):
                 if issubclass(cls, BaseExtractor) and cls != BaseExtractor:
-                    extractors[cls.get_operator_class()] = cls
+                    extractors[_extractor_key(cls)] = cls
         except Exception:
             pass
     return extractors
 
 
-class Source:
-    name = None
-    connection_url = None
-    type = None
-
-    def __init__(self, name, type, connection_url):
-        self.name = name
-        self.type = type
-        self.connection_url = connection_url
-
-    def __repr__(self):
-        return "{}+{}".format(self.name, self.connection_url)
-
-
-class Dataset:
-    source: Source = None
-    name = None
-    description = None
-    type = None
-
-    def __init__(self, source, name, type, description=None):
-        self.source = source
-        self.name = name
-        self.type = type
-        self.description = description
-
-    def __repr__(self):
-        return "{}/{}".format(self.source, self.name)
-
-
-class StepMetadata:
-    name = None
-    location = None
-    inputs = []
-    outputs = []
-    context = {}
-
-    def __init__(self, name, location=None, inputs=None, outputs=None,
-                 context=None):
-        self.name = name
-        self.location = location
-        if inputs:
-            self.inputs = inputs
-        if outputs:
-            self.outputs = outputs
-        if context:
-            self.context = context
-
-    def __repr__(self):
-        return "name: {}\t inputs: {} \t outputs: {}".format(
-            self.name,
-            ','.join([str(i) for i in self.inputs]),
-            ','.join([str(o) for o in self.outputs]))
+def _extractor_key(cls):
+    return cls.__name__.replace('Extractor', 'Operator')
 
 
 class BaseExtractor:
-    operator: BaseOperator = None
-    operator_class = None
+    """
+    This class ..
+    """
 
+    def extract(self):
+        """
+        This method will extract metadata from an operator.
+        """
+        raise NotImplementedError()
+
+
+class DefaultExtractor(BaseExtractor):
     def __init__(self, operator):
-        self.operator = operator
+        self._operator = operator
 
-    @classmethod
-    def get_operator_class(cls):
-        return cls.operator_class
-
-    def validate(self):
-        # TODO: maybe we should also enforce the module
-        assert(self.operator_class is not None and
-               self.operator.__class__.__name__ == self.operator_class)
-
-    def extract(self) -> [StepMetadata]:
-        raise NotImplementedError
+    def extract(self):
+        return AirflowOperatorMeta(
+            name=f"{self._operator.dag_id}.{self._operator.task_id}",
+            inputs=[],
+            outputs=[]
+        )

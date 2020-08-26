@@ -13,38 +13,6 @@
 import os
 import subprocess
 
-import airflow
-
-
-class JobIdMapping:
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(
-                JobIdMapping, cls).__new__(cls, *args, **kwargs)
-        return cls._instance
-
-    @staticmethod
-    def set(key, val):
-        airflow.models.Variable.set(key, val)
-
-    @staticmethod
-    def pop(key, session):
-        if session:
-            q = session.query(airflow.models.Variable).filter(
-                airflow.models.Variable.key == key)
-            if not q.first():
-                return
-            else:
-                val = q.first().val
-                q.delete(synchronize_session=False)
-                return val
-
-    @staticmethod
-    def make_key(job_name, run_id):
-        return "marquez_id_mapping-{}-{}".format(job_name, run_id)
-
 
 def url_to_https(url):
     base_url = None

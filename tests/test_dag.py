@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -12,13 +10,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Usage: $ ./init-marquez-db.sh
+from datetime import datetime
+from airflow.utils.state import State
+from airflow.operators.postgres_operator import PostgresOperator
 
-set -eu
+from marquez_airflow import DAG
 
-psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" > /dev/null <<-EOSQL
-  CREATE USER ${MARQUEZ_USER};
-  ALTER USER ${MARQUEZ_USER} WITH PASSWORD '${MARQUEZ_PASSWORD}';
-  CREATE DATABASE ${MARQUEZ_DB};
-  GRANT ALL PRIVILEGES ON DATABASE ${MARQUEZ_DB} TO ${MARQUEZ_USER};
-EOSQL
+
+def test_dag():
+    dag = DAG(dag_id='food_delivery_7_days', start_date=datetime(2020, 1, 8),)
+
+    PostgresOperator(
+        task_id='select',
+        postgres_conn_id='food_delivery_db',
+        sql='SELECT * FROM discounts;',
+        dag=dag
+    )
+
+    dag.create_dagrun(run_id='0', state=State.NONE)
