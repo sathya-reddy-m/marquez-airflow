@@ -23,7 +23,7 @@ from marquez_airflow.utils import get_connection_uri
 from marquez_airflow.extractors import (Extractors, PostgresExtractor)
 
 from marquez_client import MarquezClient
-from marquez_client.models import JobType
+from marquez_client.models import (DatasetType, JobType)
 
 _NOMINAL_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
@@ -81,12 +81,14 @@ class DAG(airflow.models.DAG):
             extractor = EXTRACTORS.extractor_for_task(task)
             task_meta = extractor.extract(task)
 
+            # (1)
             self._collect_source_meta(task_meta)
 
+            # (2)
             inputs = []
             if task_meta.inputs:
-                # for input in task_meta.inputs:
-                #    self._collect_dataset_meta(input)
+                for input in task_meta.inputs:
+                    self._collect_dataset_meta(input, task_meta.source_name)
                 inputs = list(
                     map(lambda input: {
                         'namespace': self._marquez_namespace,
@@ -94,10 +96,11 @@ class DAG(airflow.models.DAG):
                     }, task_meta.inputs)
                 )
 
+            # (3)
             outputs = []
             if task_meta.outputs:
-                # for output in task_meta.outputs:
-                #    self._collect_dataset_meta(output)
+                for output in task_meta.outputs:
+                    self._collect_dataset_meta(output, task_meta.source_name)
                 outputs = list(
                     map(lambda output: {
                         'namespace': self._marquez_namespace,
@@ -105,6 +108,7 @@ class DAG(airflow.models.DAG):
                     }, task_meta.outputs)
                 )
 
+            # (4)
             self._marquez_client.create_job(
                 namespace_name=self._marquez_namespace,
                 job_name=task_meta.name,
@@ -134,6 +138,14 @@ class DAG(airflow.models.DAG):
             source_name=task_meta.source_name,
             source_type=task_meta.source_type,
             connection_url=conn_uri)
+
+    def _collect_dataset_meta(self, dataset_name, source_name):
+        self._marquez_client.create_dataset(
+            namespace_name=self._marquez_namespace,
+            dataset_type=DatasetType.DB_TABLE,
+            dataset_name=dataset_name,
+            physical_name=dataset_name,
+            source_name=source_name)
 
     @staticmethod
     def _now_ms():
