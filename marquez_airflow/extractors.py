@@ -42,19 +42,11 @@ class BaseExtractor:
 
 
 class DefaultExtractor(BaseExtractor):
-    """
-    Default extractor.
-    """
-
     def extract(self, task):
         return AirflowTaskMeta(name=_task_name(task))
 
 
 class PostgresExtractor(BaseExtractor):
-    """
-    Extractor for postgres.
-    """
-
     def extract(self, task):
         sql_meta = SqlParser.parse(task.sql)
         return AirflowTaskMeta(

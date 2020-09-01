@@ -11,12 +11,15 @@
 # limitations under the License.
 
 from datetime import datetime
+
+import pytest
+
 from airflow.utils.state import State
 from airflow.operators.postgres_operator import PostgresOperator
 
 from marquez_airflow import DAG
 
-'''
+@pytest.mark.skip(reason="no way of currently testing this")
 def test_dag():
     dag = DAG(dag_id='food_delivery_7_days', start_date=datetime(2020, 1, 8),)
 
@@ -27,5 +30,4 @@ def test_dag():
         dag=dag
     )
 
-    dag.create_dagrun(run_id='0', state=State.NONE)
-'''
+    dag.create_dagrun(run_id='1', state=State.NONE)
