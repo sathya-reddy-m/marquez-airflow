@@ -52,7 +52,7 @@ class DAG(airflow.models.DAG):
         start = self._now_ms()
         for task_id, task in self.task_dict.items():
             try:
-                self.collect_task_meta(dag_run, task)
+                self._collect_task_meta(task)
                 log.info(
                     f"""
                     Successfully collected task metadata
