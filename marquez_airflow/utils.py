@@ -63,8 +63,14 @@ def execute_git(cwd, params):
 
 
 @provide_session
-def get_conn(source_name, session=None):
-    return (
+def get_connection(conn_id, session=None):
+    conn = _get_connection_from_env(conn_id)
+    return conn or (
         session.query(Connection)
-            .filter(Connection.conn_id == source_name)
+            .filter(Connection.conn_id == conn_id)
             .first())
+
+
+def _get_connection_from_env(conn_id):
+    env_uri = os.environ.get('AIRFLOW_CONN_' + conn_id.upper())
+    return Connection(conn_id=conn_id, uri=env_uri) if env_uri else None
