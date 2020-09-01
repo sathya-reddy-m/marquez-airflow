@@ -76,7 +76,7 @@ class PostgresExtractor(BaseExtractor):
             inputs=sql_meta.in_tables,
             outputs=sql_meta.out_tables,
             context={
-                task.sql
+                'sql': task.sql
             }
         )
 
