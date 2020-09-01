@@ -70,3 +70,4 @@ def test_postgres_extractor():
     assert task_meta.source_type == SourceType.POSTGRESQL
     assert task_meta.inputs == ['discounts']
     assert task_meta.outputs == []
+    assert 'sql' in task_meta.context
