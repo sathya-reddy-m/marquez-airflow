@@ -82,12 +82,12 @@ class DAG(airflow.models.DAG):
             task_meta = extractor.extract(task)
             log.info(f"{task_meta.name}")
 
-            self._collect_source_meta(task_meta)
+            # self._collect_source_meta(task_meta)
 
             inputs = []
             if task_meta.inputs:
-                for input in task_meta.inputs:
-                    self._collect_dataset_meta(input)
+                # for input in task_meta.inputs:
+                #    self._collect_dataset_meta(input)
                 inputs = list(
                     map(lambda input: {
                         'namespace': self._marquez_namespace,
@@ -97,8 +97,8 @@ class DAG(airflow.models.DAG):
 
             outputs = []
             if task_meta.outputs:
-                for output in task_meta.outputs:
-                    self._collect_dataset_meta(output)
+                # for output in task_meta.outputs:
+                #    self._collect_dataset_meta(output)
                 outputs = list(
                     map(lambda output: {
                         'namespace': self._marquez_namespace,
