@@ -25,12 +25,12 @@ def _task_name(task):
 class Extractors:
     def __init__(self):
         self._extractors = {
-            type(PostgresOperator): PostgresExtractor()
+            PostgresOperator: PostgresExtractor()
         }
-        self._default = DefaultExtractor()
+        self._default_extractor = DefaultExtractor()
 
     def extractor_for_task(self, task):
-        self._extractors.get(type(task), default=self._default)
+        return self._extractors.get(task.__class__, self._default_extractor)
 
 
 class BaseExtractor:

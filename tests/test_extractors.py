@@ -15,7 +15,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from airflow.utils.dates import days_ago
 
 from marquez_airflow import DAG
-from marquez_airflow.extractors import (DefaultExtractor, PostgresExtractor)
+from marquez_airflow.extractors import (Extractors, DefaultExtractor, PostgresExtractor)
 
 from marquez_client.models import SourceType
 
@@ -44,7 +44,7 @@ def test_default_extractor():
         dag=_DAG
     )
 
-    default_extractor = DefaultExtractor()
+    default_extractor = Extractors().extractor_for_task(task)
     task_meta = default_extractor.extract(task)
 
     assert task_meta.name == 'food_delivery_7_days.echo_dag_info'
@@ -62,7 +62,7 @@ def test_postgres_extractor():
         dag=_DAG
     )
 
-    postgres_extractor = PostgresExtractor()
+    postgres_extractor = Extractors().extractor_for_task(task)
     task_meta = postgres_extractor.extract(task)
 
     assert task_meta.name == 'food_delivery_7_days.select'

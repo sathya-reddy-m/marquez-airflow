@@ -54,7 +54,7 @@ class SqlParser:
     @staticmethod
     def parse(sql):
         if sql is None:
-            raise ValueError("A sql statement must provided")
+            raise ValueError("A sql statement must be provided")
 
         # Tokenize the SQL statement
         statements = sqlparse.parse(sql)
