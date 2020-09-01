@@ -72,5 +72,9 @@ def get_connection(conn_id, session=None):
 
 
 def _get_connection_from_env(conn_id):
-    env_uri = os.environ.get('AIRFLOW_CONN_' + conn_id.upper())
+    env_uri = get_connection_uri(conn_id)
     return Connection(conn_id=conn_id, uri=env_uri) if env_uri else None
+
+
+def get_connection_uri(conn_id):
+    return os.environ.get('AIRFLOW_CONN_' + conn_id.upper())
