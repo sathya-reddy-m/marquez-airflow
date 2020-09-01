@@ -129,11 +129,11 @@ class DAG(airflow.models.DAG):
             )
 
     def _collect_source_meta(self, task_meta):
-        get_conn(task_meta.source_name)
-        # self._marquez_client.create_source(
-        #    source_name=task_meta.source_name,
-        #    source_type=task_meta.source_type,
-        #    connection_url=conn.get_uri())
+        conn = get_conn(task_meta.source_name)
+        self._marquez_client.create_source(
+            source_name=task_meta.source_name,
+            source_type=task_meta.source_type,
+            connection_url="postgres://food_delivery:food_delivery@postgres:5432/food_delivery")
 
     @staticmethod
     def _now_ms():
