@@ -80,9 +80,8 @@ class DAG(airflow.models.DAG):
             # ...
             extractor = EXTRACTORS.extractor_for_task(task)
             task_meta = extractor.extract(task)
-            log.info(f"{task_meta.name}")
 
-            # self._collect_source_meta(task_meta)
+            self._collect_source_meta(task_meta)
 
             inputs = []
             if task_meta.inputs:
@@ -130,11 +129,11 @@ class DAG(airflow.models.DAG):
             )
 
     def _collect_source_meta(self, task_meta):
-        conn = get_conn(task_meta.source_name)
-        self._marquez_client.create_source(
-            source_name=task_meta.source_name,
-            source_type=task_meta.source_type,
-            connection_url=conn.get_uri())
+        get_conn(task_meta.source_name)
+        # self._marquez_client.create_source(
+        #    source_name=task_meta.source_name,
+        #    source_type=task_meta.source_type,
+        #    connection_url=conn.get_uri())
 
     @staticmethod
     def _now_ms():
