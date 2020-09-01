@@ -81,11 +81,6 @@ LOGGING_CONFIG = {
             'handler': ['console'],
             'level': FAB_LOG_LEVEL,
             'propagate': True,
-        },
-        'marquez_airflow': {
-            'handler': ['console'],
-            'level': 'INFO',
-            'propagate': False,
         }
     },
     'root': {

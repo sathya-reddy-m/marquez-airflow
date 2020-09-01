@@ -129,9 +129,7 @@ class DAG(airflow.models.DAG):
             )
 
     def _collect_source_meta(self, task_meta):
-        logging.info(f"...collecting source metadata for {task_meta.source_name}")
         conn = get_conn(task_meta.source_name)
-        logging.info(f"Found conn: {conn}")
         self._marquez_client.create_source(
             source_name=task_meta.source_name,
             source_type=task_meta.source_type,
