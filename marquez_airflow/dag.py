@@ -80,6 +80,7 @@ class DAG(airflow.models.DAG):
             # ...
             extractor = EXTRACTORS.extractor_for_task(task)
             task_meta = extractor.extract(task)
+            log.info(f"{task_meta.name}")
 
             self._collect_source_meta(task_meta)
 
