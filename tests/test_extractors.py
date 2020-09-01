@@ -10,13 +10,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-
-from marquez_airflow import DAG
+from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.utils.dates import days_ago
 
-from marquez_airflow.extractors import load_extractors
+from marquez_airflow import DAG
+from marquez_airflow.extractors import (DefaultExtractor, PostgresExtractor)
+
+from marquez_client.models import SourceType
+
 
 _DEFAULT_ARGS = {
     'owner': 'datascience',
@@ -35,12 +37,24 @@ _DAG = dag = DAG(
 )
 
 
-@pytest.fixture
-def extractors():
-    return load_extractors()
+def test_default_extractor():
+    task = BashOperator(
+        task_id='echo_dag_info',
+        bash_command='echo "run_id={{ run_id }} | dag_run={{ dag_run }}"',
+        dag=_DAG
+    )
+
+    default_extractor = DefaultExtractor()
+    task_meta = default_extractor.extract(task)
+
+    assert task_meta.name == 'food_delivery_7_days.echo_dag_info'
+    assert task_meta.source_name is None
+    assert task_meta.source_type is None
+    assert task_meta.inputs == []
+    assert task_meta.outputs == []
 
 
-def test_postgres_extractor(extractors):
+def test_postgres_extractor():
     task = PostgresOperator(
         task_id='select',
         postgres_conn_id='food_delivery_db',
@@ -48,13 +62,11 @@ def test_postgres_extractor(extractors):
         dag=_DAG
     )
 
-    extractor = extractors.get(_extractor_key(task))
-    task_meta = extractor(task).extract()
+    postgres_extractor = PostgresExtractor()
+    task_meta = postgres_extractor.extract(task)
 
     assert task_meta.name == 'food_delivery_7_days.select'
+    assert task_meta.source_name == 'food_delivery_db'
+    assert task_meta.source_type == SourceType.POSTGRESQL
     assert task_meta.inputs == ['discounts']
     assert task_meta.outputs == []
-
-
-def _extractor_key(task):
-    return task.__class__.__name__

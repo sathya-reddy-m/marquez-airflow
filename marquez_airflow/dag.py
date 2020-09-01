@@ -10,7 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
 import time
 
@@ -20,12 +19,15 @@ from pendulum import Pendulum
 
 from marquez_client import MarquezClient
 from marquez_client.models import JobType
-
-from .extractors import load_extractors
-from .utils import get_location
-from . import log
+from marquez_airflow import log
+from marquez_airflow.utils import get_conn
+from marquez_airflow.extractors import (Extractors, PostgresExtractor)
 
 _NOMINAL_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+EXTRACTORS = Extractors(
+    PostgresExtractor()
+)
 
 
 class DAG(airflow.models.DAG):
@@ -33,114 +35,99 @@ class DAG(airflow.models.DAG):
         super().__init__(*args, **kwargs)
         self._marquez_client = MarquezClient()
         self._marquez_namespace = os.getenv('MARQUEZ_NAMESPACE', 'default')
-        self._marquez_dataset_cache = {}
-        self._marquez_source_cache = {}
         self._init()
 
     def _init(self):
         try:
-            self._marquez_client.create_namespace(namespace_name=self._marquez_namespace, owner_name="anonymous")
+            self._marquez_client.create_namespace(
+                namespace_name=self._marquez_namespace,
+                owner_name="anonymous")
         except Exception:
             pass
 
     def create_dagrun(self, *args, **kwargs):
-        dagrun = super(DAG, self).create_dagrun(*args, **kwargs)
+        # ...
+        dag_run = super(DAG, self).create_dagrun(*args, **kwargs)
 
-        create_dag_start_ms = self._now_ms()
-
-        run_args = {
-            'external_trigger': kwargs.get('external_trigger', False)
-        }
-
-        extractors = {}
-        try:
-            extractors = load_extractors()
-        except Exception as e:
-            log.warn(f'Failed retrieve extractors: {e}',
-                     airflow_dag_id=self.dag_id,
-                     marquez_namespace=self._marquez_namespace)
-
-        try:
-            # Collect metadata for each task in the DAG
-            for task_id, task in self.task_dict.items():
-                t = self._now_ms()
-                try:
-                    self.collect_task_meta(
-                        dagrun.run_id,
-                        run_args,
-                        task,
-                        extractors.get(task.__class__.__name__))
-                except Exception as e:
-                    log.error(f'Failed to record task: {e}',
-                              airflow_dag_id=self.dag_id,
-                              task_id=task_id,
-                              marquez_namespace=self._marquez_namespace,
-                              duration_ms=(self._now_ms() - t))
-
-            log.info('Successfully collected task metadata',
-                     airflow_dag_id=self.dag_id,
-                     marquez_namespace=self._marquez_namespace,
-                     duration_ms=(self._now_ms() - create_dag_start_ms))
-
-        except Exception as e:
-            log.error(f'Failed to collected task metadata: {e}',
-                      airflow_dag_id=self.dag_id,
-                      marquez_namespace=self._marquez_namespace,
-                      duration_ms=(self._now_ms() - create_dag_start_ms))
-
-        return dagrun
-
-    def collect_task_meta(self, dag_run_id, run_args, task, extractor):
-        if extractor:
+        start = self._now_ms()
+        for task_id, task in self.task_dict.items():
             try:
-                log.info(f'Using extractor {extractor.__name__}',
-                         task_type=task.__class__.__name__,
-                         airflow_dag_id=self.dag_id,
-                         task_id=task.task_id,
-                         airflow_run_id=dag_run_id,
-                         marquez_namespace=self._marquez_namespace)
-
-                task_metadata = extractor(task).extract()
-
-                inputs = list(map(lambda input: {
-                    'namespace': self._marquez_namespace,
-                    'name': input},
-                    task_metadata.inputs))
-
-                log.info(f"{inputs}")
-
-                outputs = list(map(lambda output: {
-                    'namespace': self._marquez_namespace,
-                    'name': output},
-                    task_metadata.outputs))
-
-                log.info(f"{outputs}")
-
-                self._marquez_client.create_job(
-                    namespace_name=self._marquez_namespace,
-                    job_name=task_metadata.name,
-                    job_type=JobType.BATCH,
-                    input_dataset=inputs,
-                    output_dataset=outputs,
-                    location='https://github.com/' + task_metadata.name + '/blob/2294bc15eb49071f38425dc927e48655530a2f2e',
-                    description=self.description)
-
-                log.info(f'Successfully collected metadata for task: {task_metadata.name}',
-                         airflow_dag_id=self.dag_id,
-                         marquez_namespace=self._marquez_namespace)
+                self.collect_task_meta(dag_run, task)
+                log.info(
+                    f"""
+                    Successfully collected task metadata
+                    """,
+                    marquez_namespace=self._marquez_namespace,
+                    duration_ms=(self._now_ms() - start)
+                )
             except Exception as e:
-                log.error(f'Failed to extract metadata {e}',
-                          airflow_dag_id=self.dag_id,
-                          task_id=task.task_id,
-                          airflow_run_id=dag_run_id,
-                          marquez_namespace=self._marquez_namespace)
-        else:
-            log.warn('Unable to find an extractor.',
-                     task_type=task.__class__.__name__,
-                     airflow_dag_id=self.dag_id,
-                     task_id=task.task_id,
-                     airflow_run_id=dag_run_id,
-                     marquez_namespace=self._marquez_namespace)
+                # Log error, then ...
+                log.error(
+                    f"""
+                    Failed to collect task metadata: {e}
+                    """,
+                    marquez_namespace=self._marquez_namespace,
+                    duration_ms=(self._now_ms() - start)
+                )
+                continue
+
+        return dag_run
+
+    def _collect_task_meta(self, task):
+        try:
+            # ...
+            extractor = EXTRACTORS.extractor_for_task(task)
+            task_meta = extractor.extract(task)
+
+            self._collect_source_meta(task_meta.conn_id)
+
+            inputs = []
+            if task_meta.inputs:
+                inputs = list(
+                    map(lambda input: {
+                        'namespace': self._marquez_namespace,
+                        'name': input
+                    }, task_meta.inputs)
+                )
+
+            outputs = []
+            if task_meta.outputs:
+                outputs = list(
+                    map(lambda output: {
+                        'namespace': self._marquez_namespace,
+                        'name': output
+                    }, task_meta.outputs)
+                )
+
+            self._marquez_client.create_job(
+                namespace_name=self._marquez_namespace,
+                job_name=task_meta.name,
+                job_type=JobType.BATCH,
+                input_dataset=inputs,
+                output_dataset=outputs,
+                location='https://github.com/' + task_meta.name + '/blob/2294bc15eb49071f38425dc927e48655530a2f2e',
+                description=self.description)
+
+            log.info(
+                f"""
+                Successfully collected metadata for task: {task_meta.name}
+                """,
+                marquez_namespace=self._marquez_namespace
+            )
+        except Exception as e:
+            log.error(
+                f"""
+                Failed to extract metadata {e}
+                """,
+                marquez_namespace=self._marquez_namespace
+            )
+
+    def _collect_source_meta(self, conn_id):
+        conn = get_conn(conn_id)
+        self._marquez_client.create_source(
+            source_name=conn.conn_id,
+            source_type=conn.conn_type,
+            connection_url=conn.get_uri())
 
     @staticmethod
     def _now_ms():

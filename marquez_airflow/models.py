@@ -11,11 +11,11 @@
 # limitations under the License.
 
 
-class AirflowOperatorMeta:
-    def __init__(self, name, inputs, outputs,
-                 location=None, context=None):
+class AirflowTaskMeta:
+    def __init__(self, name, source_type=None, source_name=None,
+                 inputs=[], outputs=[]):
         self.name = name
+        self.source_type = source_type
+        self.source_name = source_name
         self.inputs = inputs
         self.outputs = outputs
-        self.location = location
-        self.context = context

@@ -78,7 +78,9 @@ services:
       - postgres:db
     depends_on:
       - postgres
-    entrypoint: ["./wait-for-it.sh", "postgres:5432", "--", "./entrypoint.sh"]    
+    entrypoint: ["./wait-for-it.sh", "postgres:5432", "--", "./entrypoint.sh"]
+    # Enables SQL statement logging (see: https://www.postgresql.org/docs/12/runtime-config-logging.html#GUC-LOG-STATEMENT)
+    # command: ["postgres", "-c", "log_statement=all"]
 
   postgres:
     image: bitnami/postgresql:9.6.18

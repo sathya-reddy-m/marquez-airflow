@@ -16,7 +16,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 
 from marquez_airflow import DAG
 
-
+'''
 def test_dag():
     dag = DAG(dag_id='food_delivery_7_days', start_date=datetime(2020, 1, 8),)
 
@@ -28,3 +28,4 @@ def test_dag():
     )
 
     dag.create_dagrun(run_id='0', state=State.NONE)
+'''

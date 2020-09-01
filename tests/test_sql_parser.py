@@ -14,41 +14,134 @@ from marquez_airflow.sql.parser import SqlParser
 
 
 def test_parse_simple_select():
-    sql_meta = SqlParser.parse('SELECT * FROM discounts;')
-    assert sql_meta.in_tables == ['discounts']
+    sql_meta = SqlParser.parse(
+        '''
+        SELECT *
+          FROM table0;
+        '''
+    )
+
+    assert sql_meta.in_tables == ['table0']
+    assert sql_meta.out_tables == []
+
+
+def test_parse_simple_select_into():
+    sql_meta = SqlParser.parse(
+        '''
+        SELECT *
+          INTO table0
+          FROM table1;
+        '''
+    )
+
+    assert sql_meta.in_tables == ['table1']
+    assert sql_meta.out_tables == ['table0']
+
+
+def test_parse_simple_join():
+    sql_meta = SqlParser.parse(
+        '''
+        SELECT col0, col1, col2
+          FROM table0
+          JOIN table1
+            ON t1.col0 = t2.col0
+        '''
+     )
+
+    assert sql_meta.in_tables == ['table0', 'table1']
+    assert sql_meta.out_tables == []
+
+
+def test_parse_simple_inner_join():
+    sql_meta = SqlParser.parse(
+        '''
+        SELECT col0, col1, col2
+          FROM table0
+         INNER JOIN table1
+            ON t1.col0 = t2.col0
+        '''
+    )
+
+    assert sql_meta.in_tables == ['table0', 'table1']
+    assert sql_meta.out_tables == []
+
+
+def test_parse_simple_left_join():
+    sql_meta = SqlParser.parse(
+        '''
+        SELECT col0, col1, col2
+          FROM table0
+          LEFT JOIN table1
+            ON t1.col0 = t2.col0
+        '''
+    )
+
+    assert sql_meta.in_tables == ['table0', 'table1']
+    assert sql_meta.out_tables == []
+
+
+def test_parse_simple_left_outer_join():
+    sql_meta = SqlParser.parse(
+        '''
+        SELECT col0, col1, col2
+          FROM table0
+          LEFT OUTER JOIN table1
+            ON t1.col0 = t2.col0
+        '''
+    )
+
+    assert sql_meta.in_tables == ['table0', 'table1']
+    assert sql_meta.out_tables == []
+
+
+def test_parse_simple_right_join():
+    sql_meta = SqlParser.parse(
+        '''
+        SELECT col0, col1, col2
+          FROM table0
+          RIGHT JOIN table1
+            ON t1.col0 = t2.col0;
+        '''
+     )
+
+    assert sql_meta.in_tables == ['table0', 'table1']
+    assert sql_meta.out_tables == []
+
+
+def test_parse_simple_right_outer_join():
+    sql_meta = SqlParser.parse(
+        '''
+        SELECT col0, col1, col2
+          FROM table0
+          RIGHT OUTER JOIN table1
+            ON t1.col0 = t2.col0;
+        '''
+    )
+
+    assert sql_meta.in_tables == ['table0', 'table1']
     assert sql_meta.out_tables == []
 
 
 def test_parse_simple_insert_into():
-    sql_meta = SqlParser.parse('''
-        INSERT INTO popular_orders_day_of_week (order_day_of_week, order_placed_on, orders_placed)
-        SELECT EXTRACT(ISODOW FROM order_placed_on) AS order_day_of_week,
-               order_placed_on, COUNT(*) AS orders_placed
-          FROM top_delivery_times
-         GROUP BY order_placed_on;
+    sql_meta = SqlParser.parse(
+        '''
+        INSERT INTO table0 (col0, col1, col2)
+        VALUES (val0, val1, val2);
         '''
     )
 
-    assert sql_meta.in_tables == ['top_delivery_times']
-    assert sql_meta.out_tables == ['popular_orders_day_of_week']
+    assert sql_meta.in_tables == []
+    assert sql_meta.out_tables == ['table0']
 
 
-def test_parse_complex_insert_into():
-    sql_meta = SqlParser.parse('''
-        INSERT INTO orders_7_days (order_id, placed_on, discount_id, menu_id,
-                    restaurant_id, menu_item_id, category_id)
-        SELECT o.id AS order_id, o.placed_on, o.discount_id, m.id AS menu_id,
-               m.restaurant_id, mi.id AS menu_item_id, c.id AS category_id
-          FROM orders AS o
-         INNER JOIN menu_items AS mi
-            ON mi.id = o.menu_item_id
-         INNER JOIN categories AS c
-            ON c.id = mi.category_id
-         INNER JOIN menus AS m
-            ON m.id = c.menu_id
-         WHERE o.placed_on >= NOW() - interval '7 days';
+def test_parse_simple_insert_into_select():
+    sql_meta = SqlParser.parse(
+        '''
+        INSERT INTO table1 (col0, col1, col2)
+        SELECT col0, col1, col2
+          FROM table0;
         '''
     )
 
-    assert sql_meta.in_tables == ['orders', 'menu_items', 'categories', 'menus']
-    assert sql_meta.out_tables == ['orders_7_days']
+    assert sql_meta.in_tables == ['table0']
+    assert sql_meta.out_tables == ['table1']

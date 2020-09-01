@@ -13,6 +13,8 @@
 import os
 import subprocess
 
+from airflow.utils.db import provide_session
+from airflow.models import Connection
 
 def url_to_https(url):
     base_url = None
@@ -58,3 +60,8 @@ def execute_git(cwd, params):
     p.wait(timeout=0.5)
     out, err = p.communicate()
     return out.decode('utf8').strip()
+
+
+@provide_session
+def get_conn(conn_id, session=None):
+    return session.query(Connection).filter(Connection.conn_id == conn_id).first()

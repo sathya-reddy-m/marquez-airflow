@@ -14,7 +14,36 @@ import sqlparse
 from sqlparse.sql import T
 from sqlparse.sql import TokenList
 
-from . import SqlMeta
+from marquez_airflow.sql import SqlMeta
+from marquez_airflow import log
+
+
+def _is_in_table(token):
+    return _match_on(token, [
+        'FROM',
+        'INNER JOIN',
+        'JOIN',
+        'FULL JOIN',
+        'FULL OUTER JOIN',
+        'LEFT JOIN',
+        'LEFT OUTER JOIN',
+        'RIGHT JOIN',
+        'RIGHT OUTER JOIN'
+    ])
+
+
+def _is_out_table(token):
+    return _match_on(token, ['INTO'])
+
+
+def _match_on(token, keywords):
+    return token.match(T.Keyword, values=keywords)
+
+
+def _get_table(tokens, idx):
+    idx, token = tokens.token_next(idx=idx)
+    table = next(token.flatten()).value
+    return idx, table
 
 
 class SqlParser:
@@ -24,28 +53,27 @@ class SqlParser:
 
     @staticmethod
     def parse(sql):
-        """
-        This method.
-        """
+        if sql is None:
+            raise ValueError("A sql statement must provided")
+
+        # Tokenize the SQL statement
+        statements = sqlparse.parse(sql)
+
+        # We assume only one statement in SQL
+        tokens = TokenList(statements[0].tokens)
+        log.debug(f"Tokenized {sql}: {tokens}")
 
         in_tables = []
         out_tables = []
 
-        #
-        statements = sqlparse.parse(sql)
-
-        # We assume the SQL will contain only one statement
-        tokens = TokenList(statements[0].tokens)
-
-        #
         idx, token = tokens.token_next_by(t=T.Keyword)
         while token:
-            if token.match(T.Keyword, values=['FROM', 'INNER JOIN']):
-                idx, token = tokens.token_next(idx=idx)
-                in_tables.append(next(token.flatten()).value)
-            elif token.match(T.Keyword, values=['INTO']):
-                idx, token = tokens.token_next(idx=idx)
-                out_tables.append(next(token.flatten()).value)
+            if _is_in_table(token):
+                idx, in_table = _get_table(tokens, idx)
+                in_tables.append(in_table)
+            elif _is_out_table(token):
+                idx, out_table = _get_table(tokens, idx)
+                out_tables.append(out_table)
 
             idx, token = tokens.token_next_by(t=T.Keyword, idx=idx)
 
