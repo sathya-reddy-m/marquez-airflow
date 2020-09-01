@@ -19,7 +19,7 @@ from pendulum import Pendulum
 import airflow
 
 from marquez_airflow import log
-from marquez_airflow.utils import get_conn
+from marquez_airflow.utils import get_connection
 from marquez_airflow.extractors import (Extractors, PostgresExtractor)
 
 from marquez_client import MarquezClient
@@ -129,7 +129,7 @@ class DAG(airflow.models.DAG):
             )
 
     def _collect_source_meta(self, task_meta):
-        conn = get_conn(task_meta.source_name)
+        conn = get_connection(task_meta.source_name)
         self._marquez_client.create_source(
             source_name=task_meta.source_name,
             source_type=task_meta.source_type,
