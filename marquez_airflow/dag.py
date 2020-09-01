@@ -11,17 +11,19 @@
 # limitations under the License.
 
 import os
+import logging
 import time
-
-import airflow
 
 from pendulum import Pendulum
 
-from marquez_client import MarquezClient
-from marquez_client.models import JobType
+import airflow
+
 from marquez_airflow import log
 from marquez_airflow.utils import get_conn
 from marquez_airflow.extractors import (Extractors, PostgresExtractor)
+
+from marquez_client import MarquezClient
+from marquez_client.models import JobType
 
 _NOMINAL_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
@@ -83,6 +85,8 @@ class DAG(airflow.models.DAG):
 
             inputs = []
             if task_meta.inputs:
+                for input in task_meta.inputs:
+                    self._collect_dataset_meta(input)
                 inputs = list(
                     map(lambda input: {
                         'namespace': self._marquez_namespace,
@@ -92,6 +96,8 @@ class DAG(airflow.models.DAG):
 
             outputs = []
             if task_meta.outputs:
+                for output in task_meta.outputs:
+                    self._collect_dataset_meta(output)
                 outputs = list(
                     map(lambda output: {
                         'namespace': self._marquez_namespace,
@@ -117,13 +123,15 @@ class DAG(airflow.models.DAG):
         except Exception as e:
             log.error(
                 f"""
-                Failed to extract metadata {e}
+                Failed to collect task metadata: {e}
                 """,
                 marquez_namespace=self._marquez_namespace
             )
 
     def _collect_source_meta(self, task_meta):
+        logging.info(f"...collecting source metadata for {task_meta.source_name}")
         conn = get_conn(task_meta.source_name)
+        logging.info(f"Found conn: {conn}")
         self._marquez_client.create_source(
             source_name=task_meta.source_name,
             source_type=task_meta.source_type,

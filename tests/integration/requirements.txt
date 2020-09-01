@@ -1,1 +1,1 @@
-git+git://github.com/MarquezProject/marquez-airflow.git@83745f0fff3fdb98a212d795eb6be9193b73d80f#egg=marquez_airflow
+git+git://github.com/MarquezProject/marquez-airflow.git@cfb58daddb6e5ac2ecac6ed4ef1ed5abb6d8431d#egg=marquez_airflow

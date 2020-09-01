@@ -63,5 +63,8 @@ def execute_git(cwd, params):
 
 
 @provide_session
-def get_conn(conn_id, session=None):
-    return session.query(Connection).filter(Connection.conn_id == conn_id).first()
+def get_conn(source_name, session=None):
+    return (
+        session.query(Connection)
+            .filter(Connection.conn_id == source_name)
+            .first())
