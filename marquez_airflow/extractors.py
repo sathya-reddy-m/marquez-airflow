@@ -23,16 +23,14 @@ def _task_name(task):
 
 
 class Extractors:
-    def __init__(self, *extractors):
-        self._extractors = extractors
+    def __init__(self):
+        self._extractors = {
+            type(PostgresOperator): PostgresExtractor()
+        }
         self._default = DefaultExtractor()
 
     def extractor_for_task(self, task):
-        for extractor in self._extractors:
-            if extractor.can_extract(task):
-                return extractor
-        #
-        return self._default
+        self._extractors.get(type(task), default=self._default)
 
 
 class BaseExtractor:
@@ -42,24 +40,14 @@ class BaseExtractor:
         """
         raise NotImplementedError()
 
-    def can_extract(self, task):
-        """
-        This method will extract metadata from an Airflow operator.
-        """
-        raise NotImplementedError()
-
 
 class DefaultExtractor(BaseExtractor):
     """
-    Default extractor
+    Default extractor.
     """
 
     def extract(self, task):
         return AirflowTaskMeta(name=_task_name(task))
-
-    def can_extract(self, task):
-        # ...
-        return True
 
 
 class PostgresExtractor(BaseExtractor):
@@ -79,6 +67,3 @@ class PostgresExtractor(BaseExtractor):
                 'sql': task.sql
             }
         )
-
-    def can_extract(self, task):
-        return isinstance(task, PostgresOperator)

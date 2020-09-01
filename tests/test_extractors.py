@@ -26,7 +26,7 @@ _DEFAULT_ARGS = {
     'start_date': days_ago(7),
     'email_on_failure': False,
     'email_on_retry': False,
-    'email': ['datascience@datakin.com']
+    'email': ['datascience@example.com']
 }
 
 _DAG = dag = DAG(

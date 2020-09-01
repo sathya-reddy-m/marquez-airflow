@@ -20,16 +20,14 @@ import airflow
 
 from marquez_airflow import log
 from marquez_airflow.utils import get_connection_uri
-from marquez_airflow.extractors import (Extractors, PostgresExtractor)
+from marquez_airflow.extractors import Extractors
 
 from marquez_client import MarquezClient
 from marquez_client.models import (DatasetType, JobType)
 
 _NOMINAL_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
-EXTRACTORS = Extractors(
-    PostgresExtractor()
-)
+_EXTRACTORS = Extractors()
 
 
 class DAG(airflow.models.DAG):
@@ -78,7 +76,7 @@ class DAG(airflow.models.DAG):
     def _collect_task_meta(self, task):
         try:
             # ...
-            extractor = EXTRACTORS.extractor_for_task(task)
+            extractor = _EXTRACTORS.extractor_for_task(task)
             task_meta = extractor.extract(task)
 
             # (1)
