@@ -13,9 +13,10 @@
 
 class AirflowTaskMeta:
     def __init__(self, name, source_type=None, source_name=None,
-                 inputs=[], outputs=[]):
+                 inputs=[], outputs=[], context=None):
         self.name = name
         self.source_type = source_type
         self.source_name = source_name
         self.inputs = inputs
         self.outputs = outputs
+        self.context = context

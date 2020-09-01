@@ -74,7 +74,10 @@ class PostgresExtractor(BaseExtractor):
             source_type=SourceType.POSTGRESQL,
             source_name=task.postgres_conn_id,
             inputs=sql_meta.in_tables,
-            outputs=sql_meta.out_tables
+            outputs=sql_meta.out_tables,
+            context={
+                task.sql
+            }
         )
 
     def can_extract(self, task):

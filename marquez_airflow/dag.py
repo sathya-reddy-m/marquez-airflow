@@ -116,6 +116,7 @@ class DAG(airflow.models.DAG):
                 input_dataset=inputs,
                 output_dataset=outputs,
                 location='https://github.com/' + task_meta.name + '/blob/2294bc15eb49071f38425dc927e48655530a2f2e',
+                context=task_meta.context,
                 description=self.description)
 
             log.info(
