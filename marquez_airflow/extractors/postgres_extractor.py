@@ -10,11 +10,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
+from contextlib import closing
+from typing import Optional
 
+from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.postgres_operator import PostgresOperator
 
+from marquez_airflow.models import DbTableSchema, DbColumn
 from marquez_airflow.utils import get_connection_uri
+from marquez_airflow.extractors.sql.experimental import SqlMeta
 from marquez_airflow.extractors.sql.experimental.parser import SqlParser
 from marquez_airflow.extractors import (
     BaseExtractor,
@@ -23,7 +27,11 @@ from marquez_airflow.extractors import (
     Dataset
 )
 
-log = logging.getLogger(__name__)
+_TABLE_SCHEMA = 1
+_TABLE_NAME = 2
+_COLUMN_NAME = 3
+_ORDINAL_POSITION = 4
+_DATA_TYPE = 7
 
 
 class PostgresExtractor(BaseExtractor):
@@ -34,8 +42,7 @@ class PostgresExtractor(BaseExtractor):
 
     def extract(self) -> [StepMetadata]:
         # (1) Parse sql statement to obtain input / output tables.
-        sql_meta = SqlParser.parse(self.operator.sql)
-        log.info("postgres sql parse successful.")
+        sql_meta: SqlMeta = SqlParser.parse(self.operator.sql)
 
         # (2) Default all inputs / outputs to current connection.
         # NOTE: We'll want to look into adding support for the `database`
@@ -47,13 +54,20 @@ class PostgresExtractor(BaseExtractor):
             connection_url=get_connection_uri(conn_id))
 
         # (3) Map input / output tables to dataset objects with source set
-        # as the current connection. NOTE: We may want to move _to_dataset()
-        # to class BaseExtractor or a utils class.
+        # as the current connection.
         inputs = [
-            Dataset.from_table(source, table) for table in sql_meta.in_tables
+            Dataset.from_table_schema(
+                source, in_table_schema
+            ) for in_table_schema in self._get_table_schemas(
+                sql_meta.in_tables
+            )
         ]
         outputs = [
-            Dataset.from_table(source, table) for table in sql_meta.out_tables
+            Dataset.from_table_schema(
+                source, out_table_schema
+            ) for out_table_schema in self._get_table_schemas(
+                sql_meta.out_tables
+            )
         ]
 
         return [StepMetadata(
@@ -64,3 +78,47 @@ class PostgresExtractor(BaseExtractor):
                 'sql': self.operator.sql
             }
         )]
+
+    def _get_table_schemas(self, tables: [str]) -> [DbTableSchema]:
+        # Avoid querying postgres by returning an empty array
+        # if no tables have been provided.
+        if not tables:
+            return []
+
+        # Keeps tack of the schema by table.
+        schemas_by_table = {}
+
+        postgres = PostgresHook(
+            postgres_conn_id=self.operator.postgres_conn_id,
+            schema=self.operator.database
+        )
+        with closing(postgres.get_conn()) as conn:
+            with closing(conn.cursor()) as cursor:
+                table_names = ",".join(map(lambda table: f"'{table}'", tables))
+                cursor.execute(
+                    f"""
+                    SELECT *
+                      FROM information_schema.columns
+                     WHERE table_name IN ({table_names});
+                    """
+                )
+                for row in cursor.fetchall():
+                    table_schema_name: str = row[_TABLE_SCHEMA]
+                    table_name: str = row[_TABLE_NAME]
+                    table_key: str = f"{table_schema_name}.{table_name}"
+                    table_column: DbColumn = DbColumn(
+                        name=row[_COLUMN_NAME],
+                        type=row[_DATA_TYPE],
+                        ordinal_position=row[_ORDINAL_POSITION]
+                    )
+                    table_schema: Optional[DbTableSchema] = schemas_by_table.get(table_key)
+                    if table_schema:
+                        schemas_by_table[table_key].columns.append(table_column)
+                    else:
+                        schemas_by_table[table_key] = DbTableSchema(
+                            schema_name=table_schema_name,
+                            table_name=table_name,
+                            columns=[table_column]
+                        )
+
+        return schemas_by_table.values()

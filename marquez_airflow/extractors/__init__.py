@@ -11,14 +11,15 @@
 # limitations under the License.
 
 import logging
-
+from typing import List
 from abc import ABC, abstractmethod
 
+from airflow import LoggingMixin
 from airflow.models import BaseOperator
 
-from marquez_client.models import DatasetType
+from marquez_airflow.models import DbTableSchema, DbColumn
 
-log = logging.getLogger(__name__)
+from marquez_client.models import DatasetType
 
 
 class Source:
@@ -40,40 +41,73 @@ class Source:
         return f"Source({self.name!r}, {self.type!r}, {self.connection_url!r})"
 
 
-class Dataset:
-    source: Source = None
-    name = None
-    description = None
-    type = None
-
-    def __init__(self, source, name, type, description=None):
-        self.source = source
-        self.name = name
-        self.type = type
+class Field:
+    def __init__(self, name: str, type: str, tags=[], description: str =None):
+        self.name = name,
+        self.type = type,
+        self.tags = tags,
         self.description = description
 
     @staticmethod
-    def from_table(source, table):
+    def from_column(column: DbColumn):
+        return Field(
+            name=column.name,
+            type=column.type,
+            description=column.description
+        )
+
+    def __eq__(self, other):
+        return self.name == other.name and \
+               self.type == other.type and \
+               self.tags == other.tags and \
+               self.description == other.description
+
+    def __repr__(self):
+        return f"Field({self.name!r},{self.type!r},{self.tags!r},{self.description!r})"
+
+
+class Dataset:
+    def __init__(self, source: Source, name: str, type: DatasetType, fields: List[Field] = [], description=None):
+        self.source = source
+        self.name = name
+        self.type = type
+        self.fields = fields
+        self.description = description
+
+    @staticmethod
+    def from_table(source: Source, table_name: str):
         return Dataset(
             type=DatasetType.DB_TABLE,
-            name=table,
+            name=table_name,
             source=source
+        )
+
+    @staticmethod
+    def from_table_schema(source: Source, table_schema: DbTableSchema):
+        # Prefix the table name with the schema name (format: {schema_name}.{table_name}).
+        name = f"{table_schema.schema_name}.{table_schema.table_name}"
+        # Map each column object to a field object.
+        fields = [
+            Field.from_column(column) for column in sorted(
+                table_schema.columns, key=lambda x: x.ordinal_position
+            )
+        ]
+        return Dataset(
+            type=DatasetType.DB_TABLE,
+            name=name,
+            source=source,
+            fields=fields
         )
 
     def __eq__(self, other):
         return self.source == other.source and \
                self.name == other.name and \
                self.type == other.type and \
+               self.fields == other.fields and \
                self.description == other.description
 
     def __repr__(self):
-        return f"""
-            Dataset(\
-              {self.source!r}, \
-              {self.name!r}, \
-              {self.type!r}, \
-              {self.description!r})
-        """
+        return f"Dataset({self.source!r},{self.name!r},{self.type!r},{self.fields!r},{self.description!r})"
 
 
 class StepMetadata:
@@ -103,12 +137,11 @@ class StepMetadata:
             ','.join([str(o) for o in self.outputs]))
 
 
-class BaseExtractor(ABC):
+class BaseExtractor(ABC, LoggingMixin):
     operator: BaseOperator = None
     operator_class = None
 
     def __init__(self, operator):
-        log.debug("BaseExtractor.init")
         self.operator = operator
 
     @classmethod

@@ -10,23 +10,58 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
+import mock
 
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.utils.dates import days_ago
 
 from marquez_airflow import DAG
-from marquez_airflow.extractors import (Source, Dataset)
+from marquez_airflow.models import DbTableSchema, DbColumn
+from marquez_airflow.extractors import (Source, Dataset, Field)
 from marquez_airflow.extractors.postgres_extractor import PostgresExtractor
 
 from marquez_client.models import DatasetType
 
-log = logging.getLogger(__name__)
-
 CONN_ID = 'food_delivery_db'
 CONN_URI = 'postgres://localhost:5432/food_delivery'
+
+DB_SCHEMA_NAME = 'public'
 DB_TABLE_NAME = 'discounts'
+DB_TABLE_COLUMNS = [
+    DbColumn(
+        name='id',
+        type='INTEGER',
+        ordinal_position=1
+    ),
+    DbColumn(
+        name='amount_off',
+        type='INTEGER',
+        ordinal_position=2
+    ),
+    DbColumn(
+        name='customer_email',
+        type='VARCHAR',
+        ordinal_position=3
+    ),
+    DbColumn(
+        name='starts_on',
+        type='TIMESTAMP',
+        ordinal_position=4
+    ),
+    DbColumn(
+        name='ends_on',
+        type='TIMESTAMP',
+        ordinal_position=5
+    )
+]
+DB_TABLE_SCHEMA = DbTableSchema(
+    schema_name=DB_SCHEMA_NAME,
+    table_name=DB_TABLE_NAME,
+    columns=DB_TABLE_COLUMNS
+)
+NO_DB_TABLE_SCHEMA = []
+
 SQL = f"SELECT * FROM {DB_TABLE_NAME};"
 
 DEFAULT_ARGS = {
@@ -39,23 +74,29 @@ DEFAULT_ARGS = {
 }
 
 DAG = dag = DAG(
-    'food_delivery_7_days',
+    'email_discounts',
     schedule_interval='@weekly',
     default_args=DEFAULT_ARGS,
-    description='Determines weekly food deliveries.'
+    description='Email discounts to customers that have experienced order delays daily.'
 )
 
 
-def test_extract():
+@mock.patch('marquez_airflow.extractors.postgres_extractor.PostgresExtractor._get_table_schemas')
+def test_extract(mock_get_table_schemas):
+    mock_get_table_schemas.side_effect = [[DB_TABLE_SCHEMA], NO_DB_TABLE_SCHEMA]
+
     expected_inputs = [
         Dataset(
             type=DatasetType.DB_TABLE,
-            name=DB_TABLE_NAME,
+            name=f"{DB_SCHEMA_NAME}.{DB_TABLE_NAME}",
             source=Source(
                 type='POSTGRESQL',
                 name=CONN_ID,
                 connection_url=CONN_URI
-            )
+            ),
+            fields=[
+                Field.from_column(column) for column in DB_TABLE_SCHEMA.columns
+            ]
         )]
 
     expected_context = {
@@ -64,7 +105,6 @@ def test_extract():
 
     # Set the environment variable for the connection
     os.environ[f"AIRFLOW_CONN_{CONN_ID.upper()}"] = CONN_URI
-    log.debug(CONN_URI)
 
     task = PostgresOperator(
         task_id='select',
@@ -78,7 +118,7 @@ def test_extract():
     # not return an array.
     step_metadata = PostgresExtractor(task).extract()[0]
 
-    assert step_metadata.name == 'food_delivery_7_days.select'
+    assert step_metadata.name == 'email_discounts.select'
     assert step_metadata.inputs == expected_inputs
     assert step_metadata.outputs == []
     assert step_metadata.context == expected_context
