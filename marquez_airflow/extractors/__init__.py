@@ -10,7 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 from typing import List
 from abc import ABC, abstractmethod
 
@@ -42,7 +41,7 @@ class Source:
 
 
 class Field:
-    def __init__(self, name: str, type: str, tags=[], description: str =None):
+    def __init__(self, name: str, type: str, tags=[], description: str = None):
         self.name = name,
         self.type = type,
         self.tags = tags,
@@ -63,11 +62,13 @@ class Field:
                self.description == other.description
 
     def __repr__(self):
-        return f"Field({self.name!r},{self.type!r},{self.tags!r},{self.description!r})"
+        return f"Field({self.name!r},{self.type!r}, \
+                       {self.tags!r},{self.description!r})"
 
 
 class Dataset:
-    def __init__(self, source: Source, name: str, type: DatasetType, fields: List[Field] = [], description=None):
+    def __init__(self, source: Source, name: str, type: DatasetType,
+                 fields: List[Field] = [], description=None):
         self.source = source
         self.name = name
         self.type = type
@@ -84,7 +85,8 @@ class Dataset:
 
     @staticmethod
     def from_table_schema(source: Source, table_schema: DbTableSchema):
-        # Prefix the table name with the schema name (format: {schema_name}.{table_name}).
+        # Prefix the table name with the schema name
+        # (format: {schema_name}.{table_name}).
         name = f"{table_schema.schema_name}.{table_schema.table_name}"
         # Map each column object to a field object.
         fields = [
@@ -107,7 +109,8 @@ class Dataset:
                self.description == other.description
 
     def __repr__(self):
-        return f"Dataset({self.source!r},{self.name!r},{self.type!r},{self.fields!r},{self.description!r})"
+        return f"Dataset({self.source!r},{self.name!r}, \
+                         {self.type!r},{self.fields!r},{self.description!r})"
 
 
 class StepMetadata:

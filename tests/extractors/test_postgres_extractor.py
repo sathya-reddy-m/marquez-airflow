@@ -64,26 +64,32 @@ NO_DB_TABLE_SCHEMA = []
 
 SQL = f"SELECT * FROM {DB_TABLE_NAME};"
 
-DEFAULT_ARGS = {
-    'owner': 'datascience',
+DAG_ID = 'email_discounts'
+DAG_OWNER = 'datascience'
+DAG_DEFAULT_ARGS = {
+    'owner': DAG_OWNER,
     'depends_on_past': False,
     'start_date': days_ago(7),
     'email_on_failure': False,
     'email_on_retry': False,
     'email': ['datascience@example.com']
 }
+DAG_DESCRIPTION = \
+    'Email discounts to customers that have experienced order delays daily'
 
 DAG = dag = DAG(
-    'email_discounts',
+    DAG_ID,
     schedule_interval='@weekly',
-    default_args=DEFAULT_ARGS,
-    description='Email discounts to customers that have experienced order delays daily.'
+    default_args=DAG_DEFAULT_ARGS,
+    description=DAG_DESCRIPTION
 )
 
 
-@mock.patch('marquez_airflow.extractors.postgres_extractor.PostgresExtractor._get_table_schemas')
+@mock.patch('marquez_airflow.extractors.postgres_extractor.\
+PostgresExtractor._get_table_schemas')
 def test_extract(mock_get_table_schemas):
-    mock_get_table_schemas.side_effect = [[DB_TABLE_SCHEMA], NO_DB_TABLE_SCHEMA]
+    mock_get_table_schemas.side_effect = \
+        [[DB_TABLE_SCHEMA], NO_DB_TABLE_SCHEMA]
 
     expected_inputs = [
         Dataset(

@@ -111,9 +111,11 @@ class PostgresExtractor(BaseExtractor):
                         type=row[_DATA_TYPE],
                         ordinal_position=row[_ORDINAL_POSITION]
                     )
-                    table_schema: Optional[DbTableSchema] = schemas_by_table.get(table_key)
+                    table_schema: Optional[DbTableSchema] = \
+                        schemas_by_table.get(table_key)
                     if table_schema:
-                        schemas_by_table[table_key].columns.append(table_column)
+                        schemas_by_table[table_key].\
+                            columns.append(table_column)
                     else:
                         schemas_by_table[table_key] = DbTableSchema(
                             schema_name=table_schema_name,

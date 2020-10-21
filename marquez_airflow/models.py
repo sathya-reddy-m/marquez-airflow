@@ -26,7 +26,8 @@ class DbColumn:
                self.ordinal_position == other.ordinal_position
 
     def __repr__(self):
-        return f"DbColumn({self.name!r},{self.type!r},{self.description!r},{self.ordinal_position!r})"
+        return f"DbColumn({self.name!r},{self.type!r}, \
+                          {self.description!r},{self.ordinal_position!r})"
 
 
 class DbTableSchema:
@@ -41,4 +42,5 @@ class DbTableSchema:
                self.columns == other.columns
 
     def __repr__(self):
-        return f"DbTableSchema({self.schema_name!r},{self.table_name!r},{self.columns!r})"
+        return f"DbTableSchema({self.schema_name!r},{self.table_name!r}, \
+                               {self.columns!r})"
