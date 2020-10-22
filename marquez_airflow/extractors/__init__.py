@@ -77,10 +77,10 @@ class Dataset:
         self.description = description
 
     @staticmethod
-    def from_table(source: Source, table_name: str):
+    def from_table_only(source: Source, table: str):
         return Dataset(
             type=DatasetType.DB_TABLE,
-            name=table_name,
+            name=table,
             source=source
         )
 
