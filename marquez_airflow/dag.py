@@ -403,15 +403,12 @@ class DAG(airflow.models.DAG, LoggingMixin):
                     self.register_source(dataset.source)
                     # NOTE: The client expects a dict when capturing
                     # fields for a dataset. Below we translate a field
-                    # object into a dict for compatibility.
-                    fields = []
-                    for field in dataset.fields:
-                        fields.append({
-                            'name': field.name,
-                            'type': field.type,
-                            'tags': field.tags,
-                            'description': field.description
-                        })
+                    # object into a dict for compatibility. Work is currently
+                    # in progress to make this step unnecessary (see:
+                    # https://github.com/MarquezProject/marquez-python/pull/89)
+                    fields = [
+                        field.__dict__ for field in dataset.fields
+                    ]
                     client.create_dataset(
                         dataset_name=dataset.name,
                         dataset_type=dataset.type,

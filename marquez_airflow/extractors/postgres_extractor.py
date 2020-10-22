@@ -54,7 +54,9 @@ class PostgresExtractor(BaseExtractor):
             connection_url=get_connection_uri(conn_id))
 
         # (3) Map input / output tables to dataset objects with source set
-        # as the current connection.
+        # as the current connection. We need to also get the schema for the
+        # input tables to format the dataset name as:
+        # {schema_name}.{table_name}
         inputs = [
             Dataset.from_table_schema(
                 source, in_table_schema

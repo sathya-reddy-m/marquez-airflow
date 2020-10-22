@@ -37,11 +37,12 @@ class Source:
                self.connection_url == other.connection_url
 
     def __repr__(self):
-        return f"Source({self.name!r}, {self.type!r}, {self.connection_url!r})"
+        return f"Source({self.name!r},{self.type!r},{self.connection_url!r})"
 
 
 class Field:
-    def __init__(self, name: str, type: str, tags=[], description: str = None):
+    def __init__(self, name: str, type: str,
+                 tags: List[str] = [], description: str = None):
         self.name = name,
         self.type = type,
         self.tags = tags,
