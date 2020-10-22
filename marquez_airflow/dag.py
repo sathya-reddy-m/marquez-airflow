@@ -238,24 +238,14 @@ class DAG(airflow.models.DAG, LoggingMixin):
 
         for step in steps_metadata:
             self.log.info(f'step: {step}')
-            inputs = []
-            try:
-                self.register_datasets(step.inputs)
-                inputs = list(
-                    map(lambda input: {
-                        'namespace': self.marquez_namespace,
-                        'name': input.name
-                    }, step.inputs))
-                self.log.info(f'inputs: {inputs}')
-            except Exception as e:
-                self.log.error(
-                    f'Failed to register inputs: {e} '
-                    f'inputs={str(step.inputs)} '
-                    f'airflow_dag_id={self.dag_id} '
-                    f'task_id={task.task_id} '
-                    f'step={step.name} '
-                    f'airflow_run_id={dag_run_id} '
-                    f'marquez_namespace={self.marquez_namespace}')
+
+            inputs = list(
+                map(lambda input: {
+                    'namespace': self.marquez_namespace,
+                    'name': input.name
+                }, step.inputs)
+            )
+            self.log.info(f'inputs: {inputs}')
 
             outputs = []
             try:
@@ -264,7 +254,8 @@ class DAG(airflow.models.DAG, LoggingMixin):
                     map(lambda output: {
                         'namespace': self.marquez_namespace,
                         'name': output.name
-                    }, step.outputs))
+                    }, step.outputs)
+                )
                 self.log.info(f'outputs: {outputs}')
             except Exception as e:
                 self.log.error(
