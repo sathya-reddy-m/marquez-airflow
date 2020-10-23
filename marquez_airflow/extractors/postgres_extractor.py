@@ -31,7 +31,7 @@ _TABLE_SCHEMA = 1
 _TABLE_NAME = 2
 _COLUMN_NAME = 3
 _ORDINAL_POSITION = 4
-#_DATA_TYPE = 7
+# _DATA_TYPE = 7
 _UDT_NAME = 27
 
 
@@ -120,7 +120,7 @@ class PostgresExtractor(BaseExtractor):
                     table_schema: Optional[DbTableSchema] = \
                         schemas_by_table.get(table_key)
                     if table_schema:
-                        schemas_by_table[table_key].\
+                        schemas_by_table[table_key]. \
                             columns.append(table_column)
                     else:
                         schemas_by_table[table_key] = DbTableSchema(
