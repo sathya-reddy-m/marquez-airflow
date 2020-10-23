@@ -31,7 +31,8 @@ _TABLE_SCHEMA = 1
 _TABLE_NAME = 2
 _COLUMN_NAME = 3
 _ORDINAL_POSITION = 4
-_DATA_TYPE = 7
+#_DATA_TYPE = 7
+_UDT_NAME = 27
 
 
 class PostgresExtractor(BaseExtractor):
@@ -113,7 +114,7 @@ class PostgresExtractor(BaseExtractor):
                     table_key: str = f"{table_schema_name}.{table_name}"
                     table_column: DbColumn = DbColumn(
                         name=row[_COLUMN_NAME],
-                        type=row[_DATA_TYPE],
+                        type=row[_UDT_NAME].upper(),
                         ordinal_position=row[_ORDINAL_POSITION]
                     )
                     table_schema: Optional[DbTableSchema] = \
@@ -128,4 +129,5 @@ class PostgresExtractor(BaseExtractor):
                             columns=[table_column]
                         )
 
+        self.log.info(schemas_by_table.values())
         return schemas_by_table.values()
