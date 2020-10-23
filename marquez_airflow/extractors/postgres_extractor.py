@@ -129,5 +129,4 @@ class PostgresExtractor(BaseExtractor):
                             columns=[table_column]
                         )
 
-        self.log.info(schemas_by_table.values())
         return schemas_by_table.values()
