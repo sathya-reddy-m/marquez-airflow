@@ -18,7 +18,7 @@ from airflow.utils.dates import days_ago
 
 from marquez_airflow import DAG
 from marquez_airflow.models import DbTableSchema, DbColumn
-from marquez_airflow.extractors import (Source, Dataset, Field)
+from marquez_airflow.extractors import Source, Dataset
 from marquez_airflow.extractors.postgres_extractor import PostgresExtractor
 
 from marquez_client.models import DatasetType
@@ -100,9 +100,7 @@ def test_extract(mock_get_table_schemas):
                 name=CONN_ID,
                 connection_url=CONN_URI
             ),
-            fields=[
-                Field.from_column(column) for column in DB_TABLE_SCHEMA.columns
-            ]
+            fields=[]
         )]
 
     expected_context = {

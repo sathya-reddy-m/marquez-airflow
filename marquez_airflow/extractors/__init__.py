@@ -77,30 +77,38 @@ class Dataset:
         self.description = description
 
     @staticmethod
-    def from_table_only(source: Source, table: str):
+    def from_table_only(source: Source, table_name: str,
+                        schema_name: str = None):
         return Dataset(
             type=DatasetType.DB_TABLE,
-            name=table,
+            name=Dataset._to_name(
+                schema_name=schema_name,
+                table_name=table_name
+            ),
             source=source
         )
 
     @staticmethod
     def from_table_schema(source: Source, table_schema: DbTableSchema):
-        # Prefix the table name with the schema name
-        # (format: {schema_name}.{table_name}).
-        name = f"{table_schema.schema_name}.{table_schema.table_name}"
-        # Map each column object to a field object.
-        fields = [
-            Field.from_column(column) for column in sorted(
-                table_schema.columns, key=lambda x: x.ordinal_position
-            )
-        ]
         return Dataset(
             type=DatasetType.DB_TABLE,
-            name=name,
+            name=Dataset._to_name(
+                schema_name=table_schema.schema_name,
+                table_name=table_schema.table_name
+            ),
             source=source,
-            fields=fields
+            fields=[
+                Field.from_column(column) for column in sorted(
+                    table_schema.columns, key=lambda x: x.ordinal_position
+                )
+            ]
         )
+
+    @staticmethod
+    def _to_name(table_name: str, schema_name: str = None):
+        # Prefix the table name with the schema name
+        # (format: {table_schema}.{table_name}).
+        return f"{schema_name}.{table_name}" if schema_name else table_name
 
     def __eq__(self, other):
         return self.source == other.source and \

@@ -54,19 +54,22 @@ class PostgresExtractor(BaseExtractor):
             connection_url=get_connection_uri(conn_id))
 
         # (3) Map input / output tables to dataset objects with source set
-        # as the current connection. We need to also get the schema for the
+        # as the current connection. We need to also fetch the schema for the
         # input tables to format the dataset name as:
         # {schema_name}.{table_name}
         inputs = [
-            Dataset.from_table_schema(
-                source, in_table_schema
+            Dataset.from_table_only(
+                source=source,
+                table_name=in_table_schema.table_name,
+                schema_name=in_table_schema.schema_name
             ) for in_table_schema in self._get_table_schemas(
                 sql_meta.in_tables
             )
         ]
         outputs = [
             Dataset.from_table_schema(
-                source, out_table_schema
+                source=source,
+                table_schema=out_table_schema
             ) for out_table_schema in self._get_table_schemas(
                 sql_meta.out_tables
             )
