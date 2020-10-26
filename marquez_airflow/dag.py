@@ -415,7 +415,7 @@ class DAG(airflow.models.DAG, LoggingMixin):
                         physical_name=dataset.name,
                         source_name=dataset.source.name,
                         namespace_name=self.marquez_namespace,
-                        fields=fields,
+                        #fields=fields,
                         run_id=marquez_job_run_id)
                     self._marquez_dataset_cache[_key] = True
 
