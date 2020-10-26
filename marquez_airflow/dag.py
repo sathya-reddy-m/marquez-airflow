@@ -406,16 +406,19 @@ class DAG(airflow.models.DAG, LoggingMixin):
                     # object into a dict for compatibility. Work is currently
                     # in progress to make this step unnecessary (see:
                     # https://github.com/MarquezProject/marquez-python/pull/89)
-                    fields = [
-                        field.__dict__ for field in dataset.fields
-                    ]
+                    fields = []
+                    for field in dataset.fields:
+                        fields.append({
+                            'name': field.name,
+                            'type': field.type
+                        })
                     client.create_dataset(
                         dataset_name=dataset.name,
                         dataset_type=dataset.type,
                         physical_name=dataset.name,
                         source_name=dataset.source.name,
                         namespace_name=self.marquez_namespace,
-                        #fields=fields,
+                        fields=fields,
                         run_id=marquez_job_run_id)
                     self._marquez_dataset_cache[_key] = True
 
